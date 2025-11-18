@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import axios from 'axios';
 
 interface UploadResponse {
   signedUrl: string;
@@ -9,14 +10,16 @@ interface UploadResponse {
 
 export function useUpload() {
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const uploadFile = async (file: File): Promise<UploadResponse | null> => {
     setIsUploading(true);
+    setUploadProgress(0);
     setError(null);
 
     try {
-      // Get signed URL from our API
+      // 1. Get signed URL from our API
       const response = await fetch('/api/upload', {
         method: 'POST',
         headers: {
@@ -34,18 +37,20 @@ export function useUpload() {
 
       const { signedUrl, fileKey } = await response.json();
 
-      // Upload file directly to S3 using the signed URL
-      const uploadResponse = await fetch(signedUrl, {
-        method: 'PUT',
-        body: file,
+      // 2. Upload file to S3 using Axios for progress tracking
+      await axios.put(signedUrl, file, {
         headers: {
           'Content-Type': file.type,
         },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setUploadProgress(percentCompleted);
+          }
+        },
       });
-
-      if (!uploadResponse.ok) {
-        throw new Error('Upload to S3 failed');
-      }
 
       return { signedUrl, fileKey };
     } catch (err) {
@@ -53,8 +58,10 @@ export function useUpload() {
       return null;
     } finally {
       setIsUploading(false);
+      // Keep the progress at 100% for a moment before resetting
+      setTimeout(() => setUploadProgress(0), 1000);
     }
   };
 
-  return { uploadFile, isUploading, error };
+  return { uploadFile, isUploading, uploadProgress, error };
 }
