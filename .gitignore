@@ -1,5 +1,30 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Keep existing patterns and add these:
 
+# Development/testing
+.vitest/         # Vitest cache
+.idea/           # JetBrains IDE
+.vscode/         # VSCode configs (unless sharing team settings)
+
+# AWS security (enhance existing .env rules)
+**/.aws/credentials
+**/aws-config.json
+
+# Temporary files (add to existing misc section)
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Streaming artifacts (add under next.js section)
+/streams/        # If you have local stream files
+/transcodes/
+
+# Video processing (add under misc)
+*.mp4.tmp
+*.m3u8.part
+
+# Keep all your current rules below
+# --------------------------------
 # dependencies
 /node_modules
 /.pnp
@@ -42,3 +67,4 @@ next-env.d.ts
 
 # aws
 .env.local
+/.vitest
