@@ -45,6 +45,8 @@ export async function POST(request: NextRequest) {
         fileKey,
     });
 
+    
+
     } catch (error) {
     // This will print the detailed error to your terminal where you run 'npm run dev'
     console.error('Error in upload API:', error);

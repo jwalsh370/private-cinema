@@ -2,7 +2,7 @@
 
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { VideoPlayer } from '@/components/video-player';
+import { HlsVideoPlayer } from '@/components/hls-video-player';
 
 interface VideoModalProps {
   isOpen: boolean;
@@ -16,7 +16,7 @@ export function VideoModal({ isOpen, onClose, videoUrl, videoName }: VideoModalP
 
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-800 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+      <div className="bg-slate-800 rounded-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-700">
           <h3 className="text-white font-semibold truncate">{videoName}</h3>
@@ -31,8 +31,8 @@ export function VideoModal({ isOpen, onClose, videoUrl, videoName }: VideoModalP
         </div>
 
         {/* Video Player */}
-        <div className="aspect-video bg-black">
-          <VideoPlayer 
+        <div className="aspect-video">
+          <HlsVideoPlayer 
             src={videoUrl} 
             className="w-full h-full" 
           />

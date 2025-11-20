@@ -1,67 +1,129 @@
-'use client';
+import { useState, useCallback } from 'react';
 
-import { useState } from 'react';
-import axios from 'axios';
+const validTypes = [
+  'video/mp4',
+  'video/quicktime',
+  'video/x-m4v',
+  'video/mpeg',
+  'video/avi',
+  'video/x-msvideo'
+];
+const MAX_SIZE = 1024 * 1024 * 5; // 5GB
+const CHUNK_SIZE = 1024 * 1024 * 50; // 50MB chunks
 
-interface UploadResponse {
-  signedUrl: string;
-  fileKey: string;
-}
+type UploadState = {
+  progress: number;
+  isLoading: boolean;
+  error: string | null;
+};
 
-export function useUpload() {
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+type PresignedResponse = {
+  url: string;
+  uploadId: string;
+  chunkUrls: string[];
+};
 
-  const uploadFile = async (file: File): Promise<UploadResponse | null> => {
-    setIsUploading(true);
-    setUploadProgress(0);
-    setError(null);
+export const useUpload = () => {
+  const [state, setState] = useState<UploadState>({
+    progress: 0,
+    isLoading: false,
+    error: null
+  });
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
 
-    try {
-      // 1. Get signed URL from our API
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-        }),
-      });
+  const validateFile = (file: File) => {
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const isValidType = validTypes.includes(file.type) || 
+      ['mp4', 'mov', 'm4v', 'mpeg', 'avi'].includes(extension || '');
 
-      if (!response.ok) {
-        throw new Error('Failed to get upload URL');
-      }
+    if (!isValidType) {
+      throw new Error('Supported formats: MP4, MOV, M4V, MPEG, AVI');
+    }
 
-      const { signedUrl, fileKey } = await response.json();
-
-      // 2. Upload file to S3 using Axios for progress tracking
-      await axios.put(signedUrl, file, {
-        headers: {
-          'Content-Type': file.type,
-        },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            setUploadProgress(percentCompleted);
-          }
-        },
-      });
-
-      return { signedUrl, fileKey };
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
-      return null;
-    } finally {
-      setIsUploading(false);
-      // Keep the progress at 100% for a moment before resetting
-      setTimeout(() => setUploadProgress(0), 1000);
+    if (file.size > MAX_SIZE) {
+      throw new Error(`Max file size: ${MAX_SIZE / 1024 / 1024}MB`);
     }
   };
 
-  return { uploadFile, isUploading, uploadProgress, error };
-}
+  const uploadChunk = async (
+    chunk: Blob,
+    url: string,
+    retries = 3
+  ): Promise<boolean> => {
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        body: chunk,
+        signal: abortController?.signal,
+        headers: {
+          'Content-Type': 'application/octet-stream'
+        }
+      });
+
+      if (!response.ok) throw new Error('Chunk upload failed');
+      return true;
+    } catch (error) {
+      if (retries > 0) return uploadChunk(chunk, url, retries - 1);
+      throw error;
+    }
+  };
+
+  const startUpload = useCallback(async (file: File) => {
+    const controller = new AbortController();
+    setAbortController(controller);
+    
+    try {
+      setState({ progress: 0, isLoading: true, error: null });
+      validateFile(file);
+
+      // Initiate multipart upload
+      const { url, uploadId, chunkUrls } = await fetchPresignedUrl(file);
+      
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      let uploadedChunks = 0;
+
+      for (let i = 0; i < totalChunks; i++) {
+        if (controller.signal.aborted) break;
+
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+
+        await uploadChunk(chunk, chunkUrls[i]);
+        
+        uploadedChunks++;
+        setState(prev => ({
+          ...prev,
+          progress: (uploadedChunks / totalChunks) * 100
+        }));
+      }
+
+      if (!controller.signal.aborted) {
+        await fetch(url, {
+          method: 'POST',
+          body: JSON.stringify({ uploadId }),
+          signal: controller.signal
+        });
+      }
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      setState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Upload failed'
+      }));
+    } finally {
+      setState(prev => ({ ...prev, isLoading: false }));
+    }
+  }, []);
+
+  const cancelUpload = useCallback(() => {
+    abortController?.abort();
+    setState(prev => ({ ...prev, isLoading: false }));
+  }, [abortController]);
+
+  return {
+    ...state,
+    startUpload,
+    cancelUpload
+  };
+};
