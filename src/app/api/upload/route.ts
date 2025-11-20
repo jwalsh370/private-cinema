@@ -1,58 +1,50 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { ApiError, sanitizeStreamError, validateS3Key } from '@/lib/utils';
 
-// Configure the S3 client using environment variables
-const s3Client = new S3Client({
-    region: process.env.AWS_REGION,
-    credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    },
+const s3 = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-2',
+  credentials: process.env.AWS_ACCESS_KEY_ID ? {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  } : undefined,
 });
 
-export async function POST(request: NextRequest) {
-    console.log('Upload API endpoint called!'); // This will help us debug
-    try {
+export async function POST(request: Request) {
+  try {
     const { fileName, fileType } = await request.json();
-    console.log('Request data:', { fileName, fileType });
+    const key = `uploads/${Date.now()}-${fileName}`;
 
-    if (!fileName || !fileType) {
-        return NextResponse.json(
-        { error: 'FileName and FileType are required' },
-        { status: 400 }
-        );
+    // Validate inputs
+    if (!validateS3Key(key)) {
+      throw new ApiError('Invalid file name', 400);
     }
 
-    // Generate a unique file key to avoid overwrites
-    const fileKey = `uploads/${Date.now()}-${fileName}`;
-
-    // Create the command for S3
-    const putCommand = new PutObjectCommand({
-        Bucket: process.env.AWS_S3_UPLOAD_BUCKET,
-        Key: fileKey,
-        ContentType: fileType,
+    const command = new PutObjectCommand({
+      Bucket: process.env.AWS_S3_UPLOAD_BUCKET,
+      Key: key,
+      ContentType: fileType,
     });
 
-    // Generate a URL that allows uploads, valid for 15 minutes
-    const signedUrl = await getSignedUrl(s3Client, putCommand, {
-        expiresIn: 900, // 15 minutes
-    });
-
-    console.log('Successfully generated signed URL for:', fileKey);
-    return NextResponse.json({
-        signedUrl,
-        fileKey,
-    });
-
+    const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
     
+    return NextResponse.json({
+      url,
+      key,
+      fields: {}, // Required for POST uploads
+    });
 
-    } catch (error) {
-    // This will print the detailed error to your terminal where you run 'npm run dev'
-    console.error('Error in upload API:', error);
-    return NextResponse.json(
-        { error: 'Failed to generate upload URL' },
-        { status: 500 }
+  } catch (error) {
+    console.error('Upload Error:', error);
+    
+    const message = sanitizeStreamError(
+      error instanceof Error ? error.message : 'Unknown error'
     );
-    }
+    
+    return NextResponse.json(
+      { error: message },
+      { status: error instanceof ApiError ? error.statusCode : 500 }
+    );
+  }
 }
