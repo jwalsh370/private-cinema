@@ -1,9 +1,13 @@
+// postcss.config.mjs
 import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
 
 export default {
   plugins: [
-    tailwindcss(),
-    autoprefixer()
+    tailwindcss({
+      config: './tailwind.config.mjs',
+      content: ['./app/**/*.{js,ts,jsx,tsx}']
+    }),
+    autoprefixer
   ]
 };
