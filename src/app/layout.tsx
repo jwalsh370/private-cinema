@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
+import { NavBar } from '@/components/nav-bar';
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,10 +28,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`
-        bg-background font-sans 
-        antialiased text-foreground
-        scrollbar-thin scrollbar-track-transparent 
-        scrollbar-thumb-red-600
+     bg-gray-900 text-gray-100
+     antialiased font-sans
+     scrollbar-thin scrollbar-track-transparent
+     scrollbar-thumb-gray-700 hover:scrollbar-thumb-gray-600
+   
       `}>
         <NavBar />
         {children}

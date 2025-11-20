@@ -1,5 +1,12 @@
 import { getS3Url } from './s3-helpers';
 
+export interface Movie {
+  id: string;
+  title: string;
+  poster: string;
+  duration: string;
+}
+
 export const mockMovies = {
   featured: {
     id: 'oppenheimer',
