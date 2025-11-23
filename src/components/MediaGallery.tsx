@@ -78,7 +78,8 @@ export function MediaGallery() {
               >
                 {/* Video Card */}
                 <div className="aspect-video bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg overflow-hidden shadow-2xl border border-gray-800">
-                  <HLSVideoPlayer fileKey={video.Key} />
+                  {/* Pass both fileKey and the pre-signed videoUrl */}
+                  <HLSVideoPlayer fileKey={video.Key} videoUrl={video.Url} />
                 </div>
 
                 {/* Video Info */}
