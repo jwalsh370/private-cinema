@@ -1,0 +1,40 @@
+// prisma/schema.prisma
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      Role     @default(USER)
+  videos    Video[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Video {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  s3Key       String   @unique
+  category    String
+  duration    Int
+  width       Int
+  height      Int
+  format      String
+  bitrate     Int
+  codec       String
+  audioCodec  String?
+  frameRate   Float?
+  isPublic    Boolean  @default(false)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([userId])
+}
+
+enum Role {
+  USER
+  ADMIN
+}

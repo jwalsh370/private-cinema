@@ -12,26 +12,27 @@ export const s3Client = new S3Client({
 
 export async function listMediaObjects(category?: string) {
   try {
-    const prefix = category ? `${category}/` : '';
+    console.log('S3 Bucket:', process.env.S3_BUCKET);
+    console.log('AWS Region:', process.env.AWS_REGION);
     
+    const prefix = category ? `${category}/` : '';
     const command = new ListObjectsV2Command({
       Bucket: process.env.S3_BUCKET,
       Prefix: prefix,
     });
 
     const response = await s3Client.send(command);
-    
-    return response.Contents?.map(item => {
+    console.log('S3 response:', response);
+
+    if (!response.Contents || response.Contents.length === 0) {
+      console.log('No objects found in S3 bucket');
+      return [];
+    }
+
+    return response.Contents.map(item => {
       const key = item.Key!;
-      
-      // Extract category from the first folder in the path
-      const pathParts = key.split('/');
-      let category = 'other';
-      
-      // If the file is in a folder (not in root), use the folder name as category
-      if (pathParts.length > 1 && pathParts[0] !== 'uploads') {
-        category = pathParts[0];
-      }
+      const categoryMatch = key.split('/')[0];
+      const category = categoryMatch && categoryMatch !== 'uploads' ? categoryMatch : 'other';
       
       return {
         Key: key,
@@ -39,18 +40,24 @@ export async function listMediaObjects(category?: string) {
         LastModified: item.LastModified,
         Category: category
       };
-    }) || [];
+    });
+
   } catch (error) {
-    console.error('Error listing objects:', error);
+    console.error('S3 Error:', error);
     throw error;
   }
 }
 
 export async function getPresignedUrl(key: string) {
-  const command = new GetObjectCommand({
-    Bucket: process.env.S3_BUCKET,
-    Key: key,
-  });
+  try {
+    const command = new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET,
+      Key: key,
+    });
 
-  return getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+  } catch (error) {
+    console.error('Presigned URL Error:', error);
+    throw error;
+  }
 }

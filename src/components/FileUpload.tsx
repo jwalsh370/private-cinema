@@ -284,8 +284,7 @@ export function FileUpload() {
   );
 
   return (
-    <div className="space-y-6 p-6 bg-gray-800 rounded-lg">
-      <h2 className="text-2xl font-bold text-white">Upload Media</h2>
+<div className="space-y-6 p-6 bg-gray-800/50 backdrop-blur-md rounded-2xl border border-gray-700/30">      <h2 className="text-2xl font-bold text-white">Upload Media</h2>
       
       {/* Category Selection */}
       <div>
