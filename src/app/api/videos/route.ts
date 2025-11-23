@@ -6,6 +6,7 @@ export async function GET() {
     const media = await listMediaObjects();
     return Response.json(media);
   } catch (error) {
+    console.error('API Error:', error);
     return Response.json(
       { error: 'Failed to fetch videos' },
       { status: 500 }
