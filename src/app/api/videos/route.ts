@@ -5,23 +5,45 @@ export async function GET() {
   try {
     const media = await listMediaObjects();
     
-    // Generate pre-signed URLs for each video
-    const mediaWithPresignedUrls = await Promise.all(
-      media.map(async (item) => {
-        try {
-          const presignedUrl = await getPresignedUrl(item.Key);
-          return {
-            ...item,
-            Url: presignedUrl // Replace public URL with pre-signed URL
-          };
-        } catch (error) {
-          console.error(`Error generating pre-signed URL for ${item.Key}:`, error);
-          return item; // Fall back to public URL if pre-signed fails
-        }
-      })
-    );
+    // Filter out non-video files and organize by category
+    const videoFiles = media.filter(item => {
+      const key = item.Key.toLowerCase();
+      
+      // Exclude system folders and non-video files
+      const isSystemFolder = key.includes('posters/') || 
+                             key.includes('subtitles/') ||
+                             key.startsWith('uploads/');
+      
+      const isVideoFile = key.endsWith('.mp4') || 
+                         key.endsWith('.mov') || 
+                         key.endsWith('.avi') ||
+                         key.endsWith('.mkv');
+      
+      return !isSystemFolder && isVideoFile;
+    });
+
+    // Group by category
+    const videosByCategory: Record<string, any[]> = {};
     
-    return Response.json(mediaWithPresignedUrls);
+    for (const item of videoFiles) {
+      const category = item.Category || 'other';
+      if (!videosByCategory[category]) {
+        videosByCategory[category] = [];
+      }
+      
+      try {
+        const presignedUrl = await getPresignedUrl(item.Key);
+        videosByCategory[category].push({
+          ...item,
+          Url: presignedUrl
+        });
+      } catch (error) {
+        console.error(`Error generating pre-signed URL for ${item.Key}:`, error);
+        videosByCategory[category].push(item);
+      }
+    }
+    
+    return Response.json(videosByCategory);
   } catch (error) {
     console.error('API Error:', error);
     return Response.json(
@@ -30,3 +52,4 @@ export async function GET() {
     );
   }
 }
+

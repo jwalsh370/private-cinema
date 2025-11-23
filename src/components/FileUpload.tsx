@@ -1,73 +1,522 @@
 // src/components/FileUpload.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+
+interface UploadCategory {
+  name: string;
+  bucketPath: string;
+}
+
+interface UploadProgress {
+  fileName: string;
+  progress: number;
+  speed: number;
+  estimatedTime: number;
+  uploadedBytes: number;
+  totalBytes: number;
+}
+
+const categories: UploadCategory[] = [
+  { name: 'Movies', bucketPath: 'movies' },
+  { name: 'TV Shows', bucketPath: 'tv-shows' },
+  { name: 'Documentaries', bucketPath: 'documentaries' },
+  { name: 'Personal', bucketPath: 'personal' },
+  { name: 'Other', bucketPath: 'other' }
+];
 
 export function FileUpload() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('other');
+  const [selectedFiles, setSelectedFiles] = useState<{
+    video: File | null;
+    poster: File | null;
+    subtitles: File[];
+  }>({ video: null, poster: null, subtitles: [] });
+  
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const uploadStartTime = useRef<number>(0);
 
-  const handleUpload = async (file: File) => {
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) return `${Math.ceil(seconds)}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}m ${secs}s`;
+  };
+
+  const formatSpeed = (bytesPerSecond: number): string => {
+    if (bytesPerSecond < 1024) return `${bytesPerSecond.toFixed(0)} B/s`;
+    if (bytesPerSecond < 1024 * 1024) return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`;
+    return `${(bytesPerSecond / (1024 * 1024)).toFixed(1)} MB/s`;
+  };
+
+  const validateFile = (file: File, type: 'video' | 'image' | 'subtitle'): string | null => {
+    const maxSize = {
+      video: 500 * 1024 * 1024, // 500MB
+      image: 10 * 1024 * 1024,  // 10MB
+      subtitle: 5 * 1024 * 1024 // 5MB
+    }[type];
+
+    if (file.size > maxSize) {
+      return `File too large. Maximum size: ${formatFileSize(maxSize)}`;
+    }
+
+    const validExtensions = {
+      video: ['.mp4', '.mov', '.avi', '.mkv', '.webm'],
+      image: ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
+      subtitle: ['.srt', '.vtt', '.ass']
+    }[type];
+
+    const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (extension && !validExtensions.includes(extension)) {
+      return `Invalid file type. Allowed: ${validExtensions.join(', ')}`;
+    }
+
+    return null;
+  };
+
+  const uploadWithProgress = async (formData: FormData, fileName: string, totalSize: number): Promise<any> => {
+    uploadStartTime.current = Date.now();
+    
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const progress = (event.loaded / event.total) * 100;
+          const elapsedTime = (Date.now() - uploadStartTime.current) / 1000;
+          const uploadSpeed = event.loaded / elapsedTime;
+          const remainingBytes = event.total - event.loaded;
+          const estimatedTime = remainingBytes / uploadSpeed;
+          
+          setUploadProgress({
+            fileName,
+            progress,
+            speed: uploadSpeed,
+            estimatedTime,
+            uploadedBytes: event.loaded,
+            totalBytes: event.total
+          });
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve(response);
+          } catch (error) {
+            resolve({});
+          }
+        } else {
+          reject(new Error(`Upload failed: ${xhr.statusText}`));
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        reject(new Error('Network error'));
+      });
+
+      xhr.open('POST', '/api/upload');
+      xhr.send(formData);
+    });
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setIsDragging(true);
+    } else if (e.type === 'dragleave') {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, fileType: 'video' | 'poster' | 'subtitles') => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFileSelection(files, fileType);
+    }
+  };
+
+  const handleFileSelection = (files: File[], fileType: 'video' | 'poster' | 'subtitles') => {
+    const file = files[0];
+    let validationError: string | null = null;
+
+    if (fileType === 'video') {
+      validationError = validateFile(file, 'video');
+      if (!validationError) {
+        setSelectedFiles(prev => ({ ...prev, video: file }));
+      }
+    } else if (fileType === 'poster') {
+      validationError = validateFile(file, 'image');
+      if (!validationError) {
+        setSelectedFiles(prev => ({ ...prev, poster: file }));
+      }
+    } else {
+      // For subtitles, validate each file
+      const validFiles: File[] = [];
+      for (const subFile of files) {
+        validationError = validateFile(subFile, 'subtitle');
+        if (validationError) break;
+        validFiles.push(subFile);
+      }
+      if (!validationError) {
+        setSelectedFiles(prev => ({ ...prev, subtitles: validFiles }));
+      }
+    }
+
+    if (validationError) {
+      setError(validationError);
+    } else {
+      setError(null);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: 'video' | 'poster' | 'subtitles') => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    handleFileSelection(Array.from(files), fileType);
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFiles.video) {
+      setError('Please select a video file');
+      return;
+    }
+
     setUploading(true);
     setError(null);
-    
+    setSuccess(null);
+    setUploadProgress(null);
+
     try {
-      // Step 1: Get presigned URL
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-        }),
-      });
-
-      if (!res.ok) throw new Error('Failed to get upload URL');
+      console.log('Starting upload process...');
       
-      // Step 2: Upload to S3
-      const { url } = await res.json();
-      const s3Response = await fetch(url, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type,
-        },
-      });
+      // Upload video file
+      const videoFormData = new FormData();
+      videoFormData.append('file', selectedFiles.video);
+      videoFormData.append('category', selectedCategory);
+      videoFormData.append('type', 'video');
 
-      if (!s3Response.ok) throw new Error('Upload to S3 failed');
+      console.log('Uploading video file:', selectedFiles.video.name);
+      
+      const videoData = await uploadWithProgress(videoFormData, selectedFiles.video.name, selectedFiles.video.size);
+      console.log('Video uploaded successfully:', videoData);
 
-      alert('File uploaded successfully!');
+      // Upload poster if provided
+      if (selectedFiles.poster) {
+        console.log('Uploading poster file:', selectedFiles.poster.name);
+        const posterFormData = new FormData();
+        posterFormData.append('file', selectedFiles.poster);
+        posterFormData.append('category', selectedCategory);
+        posterFormData.append('type', 'poster');
+        posterFormData.append('videoKey', videoData.key);
+
+        await uploadWithProgress(posterFormData, selectedFiles.poster.name, selectedFiles.poster.size);
+        console.log('Poster uploaded successfully');
+      }
+
+      // Upload subtitles if provided
+      if (selectedFiles.subtitles && selectedFiles.subtitles.length > 0) {
+        console.log('Uploading subtitle files');
+        for (const subtitle of selectedFiles.subtitles) {
+          const subtitleFormData = new FormData();
+          subtitleFormData.append('file', subtitle);
+          subtitleFormData.append('category', selectedCategory);
+          subtitleFormData.append('type', 'subtitle');
+          subtitleFormData.append('videoKey', videoData.key);
+
+          await uploadWithProgress(subtitleFormData, subtitle.name, subtitle.size);
+        }
+        console.log('Subtitles uploaded successfully');
+      }
+
+      setSuccess('Files uploaded successfully!');
+      setSelectedFiles({ video: null, poster: null, subtitles: [] });
+      setUploadProgress(null);
+      
+      // Refresh the gallery after successful upload
+      setTimeout(() => window.location.reload(), 2000);
+      
     } catch (err) {
       console.error('Upload error:', err);
       setError(err instanceof Error ? err.message : 'Upload failed');
+      setUploadProgress(null);
     } finally {
       setUploading(false);
     }
   };
 
+  const clearSelection = () => {
+    setSelectedFiles({ video: null, poster: null, subtitles: [] });
+    setError(null);
+    setSuccess(null);
+  };
+
+  const renderDragDropArea = (fileType: 'video' | 'poster' | 'subtitles', label: string, accept: string) => (
+    <div
+      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+        isDragging ? 'border-blue-400 bg-blue-500/10' : 'border-gray-600 hover:border-gray-500'
+      }`}
+      onDragEnter={handleDrag}
+      onDragOver={handleDrag}
+      onDragLeave={handleDrag}
+      onDrop={(e) => handleDrop(e, fileType)}
+    >
+      <div className="text-gray-400 mb-2">📁</div>
+      <p className="text-gray-300">Drag & drop {label} here</p>
+      <p className="text-gray-500 text-sm mt-1">or click to browse</p>
+      <p className="text-gray-400 text-xs mt-2">Accepted: {accept}</p>
+    </div>
+  );
+
   return (
-    <div className="space-y-4">
-      <label className="flex flex-col items-center px-4 py-6 border-2 border-dashed rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
-        <input
-          type="file"
-          accept="video/*"
-          className="hidden"
-          onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])}
-          disabled={uploading}
-        />
-        <span className="text-lg font-medium">
-          {uploading ? 'Uploading...' : 'Select Video File'}
-        </span>
-        <span className="text-sm text-gray-500">MP4, MOV, AVI files</span>
-      </label>
+    <div className="space-y-6 p-6 bg-gray-800 rounded-lg">
+      <h2 className="text-2xl font-bold text-white">Upload Media</h2>
       
+      {/* Category Selection */}
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Category
+        </label>
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border-2 border-gray-600"
+          disabled={uploading}
+        >
+          {categories.map((cat) => (
+            <option key={cat.bucketPath} value={cat.bucketPath}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* File Inputs */}
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Video File (Required)
+          </label>
+          <div 
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={(e) => handleDrop(e, 'video')}
+          >
+            <input
+              type="file"
+              accept="video/*"
+              onChange={(e) => handleFileChange(e, 'video')}
+              className="hidden"
+              id="video-upload"
+              disabled={uploading}
+            />
+            <label htmlFor="video-upload" className="cursor-pointer">
+              {renderDragDropArea('video', 'a video file', 'MP4, MOV, AVI, MKV, WEBM')}
+            </label>
+          </div>
+          {selectedFiles.video && (
+            <div className="flex items-center justify-between mt-2 p-2 bg-green-500/10 rounded">
+              <span className="text-sm text-green-400">
+                ✓ {selectedFiles.video.name} ({formatFileSize(selectedFiles.video.size)})
+              </span>
+              <button
+                onClick={() => setSelectedFiles(prev => ({ ...prev, video: null }))}
+                className="text-red-400 hover:text-red-300 text-sm"
+                disabled={uploading}
+              >
+                Remove
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Poster Image (Optional)
+          </label>
+          <div 
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={(e) => handleDrop(e, 'poster')}
+          >
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleFileChange(e, 'poster')}
+              className="hidden"
+              id="poster-upload"
+              disabled={uploading}
+            />
+            <label htmlFor="poster-upload" className="cursor-pointer">
+              {renderDragDropArea('poster', 'a poster image', 'JPG, PNG, GIF, WEBP')}
+            </label>
+          </div>
+          {selectedFiles.poster && (
+            <div className="flex items-center justify-between mt-2 p-2 bg-blue-500/10 rounded">
+              <span className="text-sm text-blue-400">
+                ✓ {selectedFiles.poster.name} ({formatFileSize(selectedFiles.poster.size)})
+              </span>
+              <button
+                onClick={() => setSelectedFiles(prev => ({ ...prev, poster: null }))}
+                className="text-red-400 hover:text-red-300 text-sm"
+                disabled={uploading}
+              >
+                Remove
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Subtitles (Optional)
+          </label>
+          <div 
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={(e) => handleDrop(e, 'subtitles')}
+          >
+            <input
+              type="file"
+              accept=".srt,.vtt,.ass"
+              multiple
+              onChange={(e) => handleFileChange(e, 'subtitles')}
+              className="hidden"
+              id="subtitle-upload"
+              disabled={uploading}
+            />
+            <label htmlFor="subtitle-upload" className="cursor-pointer">
+              {renderDragDropArea('subtitles', 'subtitle files', 'SRT, VTT, ASS')}
+            </label>
+          </div>
+          {selectedFiles.subtitles.length > 0 && (
+            <div className="mt-2 p-2 bg-purple-500/10 rounded">
+              <span className="text-sm text-purple-400">
+                ✓ {selectedFiles.subtitles.length} subtitle file(s) selected
+              </span>
+              <button
+                onClick={() => setSelectedFiles(prev => ({ ...prev, subtitles: [] }))}
+                className="text-red-400 hover:text-red-300 text-sm ml-4"
+                disabled={uploading}
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      {uploadProgress && (
+        <div className="bg-gray-700 p-4 rounded-lg">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-white">
+              Uploading: {uploadProgress.fileName}
+            </span>
+            <span className="text-sm text-gray-300">
+              {Math.round(uploadProgress.progress)}%
+            </span>
+          </div>
+          
+          <div className="w-full bg-gray-600 rounded-full h-2.5 mb-2">
+            <div 
+              className="bg-blue-500 h-2.5 rounded-full transition-all duration-300"
+              style={{ width: `${uploadProgress.progress}%` }}
+            />
+          </div>
+          
+          <div className="flex justify-between text-xs text-gray-400">
+            <span>
+              {formatFileSize(uploadProgress.uploadedBytes)} / {formatFileSize(uploadProgress.totalBytes)}
+            </span>
+            <span>
+              {uploadProgress.speed > 0 ? (
+                <>
+                  {formatSpeed(uploadProgress.speed)} • 
+                  ETA: {formatTime(uploadProgress.estimatedTime)}
+                </>
+              ) : 'Calculating...'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex gap-3">
+        <button
+          onClick={handleFileUpload}
+          disabled={uploading || !selectedFiles.video}
+          className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white py-3 rounded-lg transition-colors flex items-center justify-center"
+        >
+          {uploading ? (
+            <>
+              <span className="animate-spin mr-2">⏳</span>
+              Uploading...
+            </>
+          ) : (
+            'Start Upload'
+          )}
+        </button>
+        
+        {!uploading && (selectedFiles.video || selectedFiles.poster || selectedFiles.subtitles.length > 0) && (
+          <button
+            onClick={clearSelection}
+            className="px-4 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-lg transition-colors"
+          >
+            Clear All
+          </button>
+        )}
+      </div>
+
+      {/* Status Messages */}
       {error && (
-        <div className="p-4 text-red-600 bg-red-50 rounded-lg">
-          Error: {error}
+        <div className="p-3 bg-red-500/20 text-red-300 rounded-lg">
+          <span className="font-medium">Error:</span> {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="p-3 bg-green-500/20 text-green-300 rounded-lg">
+          <span className="font-medium">Success:</span> {success}
+        </div>
+      )}
+
+      {/* File Summary */}
+      {(selectedFiles.video || selectedFiles.poster || selectedFiles.subtitles.length > 0) && !uploading && (
+        <div className="p-3 bg-gray-700/50 rounded-lg">
+          <h4 className="font-medium text-gray-300 mb-2">Selected Files:</h4>
+          <ul className="text-sm text-gray-400 space-y-1">
+            {selectedFiles.video && (
+              <li>🎥 Video: {selectedFiles.video.name} ({formatFileSize(selectedFiles.video.size)})</li>
+            )}
+            {selectedFiles.poster && (
+              <li>🖼️ Poster: {selectedFiles.poster.name} ({formatFileSize(selectedFiles.poster.size)})</li>
+            )}
+            {selectedFiles.subtitles.length > 0 && (
+              <li>📝 Subtitles: {selectedFiles.subtitles.length} file(s)</li>
+            )}
+          </ul>
         </div>
       )}
     </div>
   );
 }
+
