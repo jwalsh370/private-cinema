@@ -69,3 +69,5 @@ next-env.d.ts
 # aws
 .env*.local
 /.vitest
+
+/generated/prisma

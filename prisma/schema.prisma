@@ -1,40 +1,42 @@
 // prisma/schema.prisma
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  password  String
-  role      Role     @default(USER)
-  videos    Video[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model Video {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  s3Key       String   @unique
-  category    String
-  duration    Int
-  width       Int
-  height      Int
-  format      String
-  bitrate     Int
-  codec       String
-  audioCodec  String?
-  frameRate   Float?
-  isPublic    Boolean  @default(false)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([category])
-  @@index([userId])
+  id            String   @id @default(cuid())
+  s3Key         String   @unique
+  originalName  String
+  fileSize      Int
+  category      String
+  fileType      String
+  
+  // Parsed metadata from filename
+  parsedTitle   String
+  parsedYear    Int?
+  parsedQuality String?
+  parsedSource  String?
+  
+  // TMDB metadata
+  tmdbId        Int?
+  tmdbMetadata  Json?
+  
+  // Status tracking
+  metadataStatus MetadataStatus @default(PENDING)
+  uploadDate    DateTime @default(now())
+  matchedAt     DateTime?
+  
+  @@map("videos")
 }
 
-enum Role {
-  USER
-  ADMIN
+enum MetadataStatus {
+  PENDING
+  MATCHED
+  MANUAL
+  ERROR
 }

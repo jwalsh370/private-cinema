@@ -1,84 +1,53 @@
 // app/page.tsx
 'use client';
-import { useState, useEffect } from 'react';
-import { LuxuryNavbar } from '@/components/LuxuryNavbar';
-import { HeroSection } from '@/components/HeroSection';
+import { useState } from 'react';
 import { FileUpload } from '@/components/FileUpload';
-import { DetailedInfoModal } from '@/components/DetailedInfoModal';
+import { MetadataManager } from '@/components/MetadataManager';
+import { Upload, Database, Settings } from 'lucide-react';
+
+type View = 'upload' | 'manage' | 'settings';
 
 export default function Home() {
-  const [showUpload, setShowUpload] = useState(false);
-  const [selectedMovie, setSelectedMovie] = useState<any>(null);
-  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-
-  // Mock data for demonstration - you'll replace this with actual data
-  const featuredMovies = [
-    {
-      id: 1,
-      title: "The Shawshank Redemption",
-      overview: "Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.",
-      poster_path: "/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg",
-      vote_average: 8.7,
-      release_date: "1994-09-23",
-      runtime: 142
-    }
-  ];
-
-  const handlePlay = (movie: any) => {
-    console.log('Play movie:', movie);
-    // Implement play functionality
-  };
-
-  const handleInfo = (movie: any) => {
-    setSelectedMovie(movie);
-    setIsInfoModalOpen(true);
-  };
-
-  const handleAddToCollection = () => {
-    console.log('Add to collection:', selectedMovie);
-  };
+  const [currentView, setCurrentView] = useState<View>('upload');
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      <LuxuryNavbar />
-      
-      {/* Hero Section */}
-      {featuredMovies.length > 0 && (
-        <div className="pt-20">
-          <HeroSection 
-            featuredMovies={featuredMovies}
-            onPlay={handlePlay}
-            onInfo={handleInfo}
-          />
-        </div>
-      )}
-
-      {/* Upload Section */}
-      <div className="relative z-10 pb-20">
-        <div className="flex justify-center mb-12 mt-8">
-          <button
-            onClick={() => setShowUpload(!showUpload)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors"
-          >
-            {showUpload ? 'Hide Upload' : 'Add to Collection'}
-          </button>
-        </div>
-
-        {showUpload && (
-          <div className="max-w-4xl mx-auto mb-12">
-            <FileUpload />
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation */}
+      <nav className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex space-x-8">
+            <button
+              onClick={() => setCurrentView('upload')}
+              className={`flex items-center space-x-2 py-4 px-2 border-b-2 ${
+                currentView === 'upload'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Upload size={20} />
+              <span>Upload</span>
+            </button>
+            
+            <button
+              onClick={() => setCurrentView('manage')}
+              className={`flex items-center space-x-2 py-4 px-2 border-b-2 ${
+                currentView === 'manage'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Database size={20} />
+              <span>Manage Metadata</span>
+            </button>
           </div>
-        )}
-      </div>
+        </div>
+      </nav>
 
-      {/* Info Modal */}
-      <DetailedInfoModal
-        isOpen={isInfoModalOpen}
-        onClose={() => setIsInfoModalOpen(false)}
-        metadata={selectedMovie}
-        onPlay={() => handlePlay(selectedMovie)}
-        onAddToCollection={handleAddToCollection}
-      />
-    </main>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {currentView === 'upload' && <FileUpload />}
+        {currentView === 'manage' && <MetadataManager />}
+      </main>
+    </div>
   );
 }

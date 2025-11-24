@@ -18,6 +18,7 @@
     "@aws-sdk/s3-request-presigner": "^3.937.0",
     "@ffmpeg/core": "^0.12.10",
     "@ffmpeg/ffmpeg": "^0.12.15",
+    "@prisma/extension-accelerate": "^3.0.0",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/forms": "^0.5.10",
@@ -42,6 +43,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@prisma/client": "^6.19.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^14.2.1",
     "@testing-library/user-event": "^14.6.1",
@@ -55,6 +57,7 @@
     "eslint-config-next": "16.0.3",
     "jsdom": "^27.2.0",
     "postcss": "^8.5.6",
+    "prisma": "^6.19.0",
     "tailwindcss": "^3.4.18"
   }
 }
