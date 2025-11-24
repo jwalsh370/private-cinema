@@ -114,7 +114,7 @@ export function MediaGallery() {
           <p className="text-gray-300 text-xl mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-all"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-all btn"
           >
             Try Again
           </button>
@@ -182,7 +182,7 @@ export function MediaGallery() {
               className={`p-2 rounded-lg transition-all ${
                 viewMode === 'grid' 
                   ? 'bg-blue-600 text-white' 
-                  : 'text-gray-400 hover:text-white'
+                  : ' btn'
               }`}
             >
               <Grid size={20} />
@@ -192,7 +192,7 @@ export function MediaGallery() {
               className={`p-2 rounded-lg transition-all ${
                 viewMode === 'list' 
                   ? 'bg-purple-600 text-white' 
-                  : 'text-gray-400 hover:text-white'
+                  : ' btn'
               }`}
             >
               <List size={20} />

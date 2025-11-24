@@ -44,7 +44,7 @@ export function HLSVideoPlayer({ fileKey, videoUrl }: HLSVideoPlayerProps) {
         </div>
         <button
           onClick={() => window.location.reload()}
-          className="text-blue-400 text-xs underline hover:text-blue-300"
+          className="text-blue-400 text-xs underline hover:text-blue-300 btn"
         >
           Reload page
         </button>
@@ -84,7 +84,7 @@ export function HLSVideoPlayer({ fileKey, videoUrl }: HLSVideoPlayerProps) {
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-50">
           <button
             onClick={handlePlay}
-            className="bg-red-600 hover:bg-red-700 text-white rounded-full w-16 h-16 flex items-center justify-center transition-transform hover:scale-110"
+            className="bg-red-600 hover:bg-red-700 text-white rounded-full w-16 h-16 flex items-center justify-center transition-transform hover:scale-110 btn"
           >
             <span className="text-2xl">▶</span>
           </button>

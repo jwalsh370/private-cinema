@@ -1,21 +1,86 @@
-/* src/app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --midnight: #0f172a;
+  --navy: #1e293b;
+  --slate: #334155;
+  --cream: #f8fafc;
+  --gold: #d4af37;
+  --coral: #ff6b6b;
+  --sage: #87a96b;
+  --taupe: #bcabae;
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+/* Luxury components */
+@layer components {
+  .luxury-gradient {
+    background: linear-gradient(
+      135deg,
+      theme('colors.midnight-blue') 0%,
+      theme('colors.deep-navy') 50%,
+      theme('colors.charcoal') 100%
+    );
   }
+  
+  .gold-border {
+    border: 1px solid theme('colors.gold-accent');
+  }
+  
+  .salmon-glow {
+    box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+  }
+  
+  .card-hover {
+    @apply transform transition-all duration-500 hover:scale-105 hover:shadow-2xl;
+  }
+  
+  .luxury-button {
+    @apply bg-gradient-to-r from-slate-800 to-charcoal border border-gold-accent text-soft-white font-light py-3 px-8 rounded-lg transition-all duration-300 hover:from-charcoal hover:to-slate-800 hover:border-salmon-pink hover:text-salmon-pink hover:salmon-glow;
+  }
+  
+  .secondary-button {
+    @apply bg-transparent border border-silver text-silver font-light py-2 px-6 rounded transition-all duration-300 hover:border-salmon-pink hover:text-salmon-pink hover:salmon-glow;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: theme('colors.deep-navy');
+}
+
+::-webkit-scrollbar-thumb {
+  background: theme('colors.gold-accent');
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: theme('colors.salmon-pink');
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 600;
+}
+
+/* Glass morphism effect */
+.glass-effect {
+  background: rgba(28, 37, 65, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(200, 155, 60, 0.2);
+}
+
+/* Body styles */
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, theme('colors.midnight-blue') 0%, theme('colors.deep-navy') 50%, theme('colors.charcoal') 100%);
+  color: theme('colors.soft-white');
+  overflow-x: hidden;
 }

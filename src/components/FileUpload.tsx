@@ -17,6 +17,13 @@ interface UploadProgress {
   totalBytes: number;
 }
 
+interface TMDBResult {
+  id: number;
+  title: string;
+  release_date: string;
+  // Add other TMDB fields as needed
+}
+
 const categories: UploadCategory[] = [
   { name: 'Movies', bucketPath: 'movies' },
   { name: 'TV Shows', bucketPath: 'tv-shows' },
@@ -39,6 +46,11 @@ export function FileUpload() {
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const uploadStartTime = useRef<number>(0);
+  const [movieTitle, setMovieTitle] = useState('');
+  const [year, setYear] = useState('');
+  const [manualSearch, setManualSearch] = useState(false);
+  const [searchResults, setSearchResults] = useState<TMDBResult[]>([]);
+  const [selectedMovie, setSelectedMovie] = useState<TMDBResult | null>(null);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -159,6 +171,7 @@ export function FileUpload() {
       validationError = validateFile(file, 'video');
       if (!validationError) {
         setSelectedFiles(prev => ({ ...prev, video: file }));
+        extractTitleAndYear(file.name);
       }
     } else if (fileType === 'poster') {
       validationError = validateFile(file, 'image');
@@ -182,6 +195,34 @@ export function FileUpload() {
       setError(validationError);
     } else {
       setError(null);
+    }
+  };
+
+  const extractTitleAndYear = (filename: string) => {
+    // Pattern: Movie.Name.2020.1080p.BluRay.mp4
+    const pattern = /^(.*?)(\.(\d{4}))?\./;
+    const match = filename.match(pattern);
+    
+    if (match) {
+      const title = match[1].replace(/[._]/g, ' ').trim();
+      const year = match[3] || '';
+      setMovieTitle(title);
+      setYear(year);
+      
+      // Auto-search TMDB
+      searchTMDB(title, year);
+    }
+  };
+
+  const searchTMDB = async (title: string, year: string = '') => {
+    try {
+      const response = await fetch(
+        `/api/tmdb/search?query=${encodeURIComponent(title)}${year ? `&year=${year}` : ''}`
+      );
+      const results = await response.json();
+      setSearchResults(results);
+    } catch (error) {
+      console.error('TMDB search failed:', error);
     }
   };
 
@@ -210,6 +251,15 @@ export function FileUpload() {
       videoFormData.append('file', selectedFiles.video);
       videoFormData.append('category', selectedCategory);
       videoFormData.append('type', 'video');
+      
+      // Add TMDB metadata if available
+      if (selectedMovie) {
+        videoFormData.append('tmdbId', selectedMovie.id.toString());
+        videoFormData.append('title', selectedMovie.title);
+        if (selectedMovie.release_date) {
+          videoFormData.append('year', new Date(selectedMovie.release_date).getFullYear().toString());
+        }
+      }
 
       console.log('Uploading video file:', selectedFiles.video.name);
       
@@ -247,6 +297,10 @@ export function FileUpload() {
       setSuccess('Files uploaded successfully!');
       setSelectedFiles({ video: null, poster: null, subtitles: [] });
       setUploadProgress(null);
+      setSearchResults([]);
+      setSelectedMovie(null);
+      setMovieTitle('');
+      setYear('');
       
       // Refresh the gallery after successful upload
       setTimeout(() => window.location.reload(), 2000);
@@ -264,6 +318,10 @@ export function FileUpload() {
     setSelectedFiles({ video: null, poster: null, subtitles: [] });
     setError(null);
     setSuccess(null);
+    setSearchResults([]);
+    setSelectedMovie(null);
+    setMovieTitle('');
+    setYear('');
   };
 
   const renderDragDropArea = (fileType: 'video' | 'poster' | 'subtitles', label: string, accept: string) => (
@@ -284,7 +342,8 @@ export function FileUpload() {
   );
 
   return (
-<div className="space-y-6 p-6 bg-gray-800/50 backdrop-blur-md rounded-2xl border border-gray-700/30">      <h2 className="text-2xl font-bold text-white">Upload Media</h2>
+    <div className="space-y-6 p-6 bg-gray-800/50 backdrop-blur-md rounded-2xl border border-gray-700/30">
+      <h2 className="text-2xl font-bold text-white">Upload Media</h2>
       
       {/* Category Selection */}
       <div>
@@ -298,224 +357,303 @@ export function FileUpload() {
           disabled={uploading}
         >
           {categories.map((cat) => (
-            <option key={cat.bucketPath} value={cat.bucketPath}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* File Inputs */}
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Video File (Required)
-          </label>
-          <div 
-            onDragEnter={handleDrag}
-            onDragOver={handleDrag}
-            onDragLeave={handleDrag}
-            onDrop={(e) => handleDrop(e, 'video')}
-          >
-            <input
-              type="file"
-              accept="video/*"
-              onChange={(e) => handleFileChange(e, 'video')}
-              className="hidden"
-              id="video-upload"
-              disabled={uploading}
-            />
-            <label htmlFor="video-upload" className="cursor-pointer">
-              {renderDragDropArea('video', 'a video file', 'MP4, MOV, AVI, MKV, WEBM')}
-            </label>
-          </div>
-          {selectedFiles.video && (
-            <div className="flex items-center justify-between mt-2 p-2 bg-green-500/10 rounded">
-              <span className="text-sm text-green-400">
-                ✓ {selectedFiles.video.name} ({formatFileSize(selectedFiles.video.size)})
-              </span>
-              <button
-                onClick={() => setSelectedFiles(prev => ({ ...prev, video: null }))}
-                className="text-red-400 hover:text-red-300 text-sm"
-                disabled={uploading}
-              >
-                Remove
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Poster Image (Optional)
-          </label>
-          <div 
-            onDragEnter={handleDrag}
-            onDragOver={handleDrag}
-            onDragLeave={handleDrag}
-            onDrop={(e) => handleDrop(e, 'poster')}
-          >
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleFileChange(e, 'poster')}
-              className="hidden"
-              id="poster-upload"
-              disabled={uploading}
-            />
-            <label htmlFor="poster-upload" className="cursor-pointer">
-              {renderDragDropArea('poster', 'a poster image', 'JPG, PNG, GIF, WEBP')}
-            </label>
-          </div>
-          {selectedFiles.poster && (
-            <div className="flex items-center justify-between mt-2 p-2 bg-blue-500/10 rounded">
-              <span className="text-sm text-blue-400">
-                ✓ {selectedFiles.poster.name} ({formatFileSize(selectedFiles.poster.size)})
-              </span>
-              <button
-                onClick={() => setSelectedFiles(prev => ({ ...prev, poster: null }))}
-                className="text-red-400 hover:text-red-300 text-sm"
-                disabled={uploading}
-              >
-                Remove
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Subtitles (Optional)
-          </label>
-          <div 
-            onDragEnter={handleDrag}
-            onDragOver={handleDrag}
-            onDragLeave={handleDrag}
-            onDrop={(e) => handleDrop(e, 'subtitles')}
-          >
-            <input
-              type="file"
-              accept=".srt,.vtt,.ass"
-              multiple
-              onChange={(e) => handleFileChange(e, 'subtitles')}
-              className="hidden"
-              id="subtitle-upload"
-              disabled={uploading}
-            />
-            <label htmlFor="subtitle-upload" className="cursor-pointer">
-              {renderDragDropArea('subtitles', 'subtitle files', 'SRT, VTT, ASS')}
-            </label>
-          </div>
-          {selectedFiles.subtitles.length > 0 && (
-            <div className="mt-2 p-2 bg-purple-500/10 rounded">
-              <span className="text-sm text-purple-400">
-                ✓ {selectedFiles.subtitles.length} subtitle file(s) selected
-              </span>
-              <button
-                onClick={() => setSelectedFiles(prev => ({ ...prev, subtitles: [] }))}
-                className="text-red-400 hover:text-red-300 text-sm ml-4"
-                disabled={uploading}
-              >
-                Clear
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      {uploadProgress && (
-        <div className="bg-gray-700 p-4 rounded-lg">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-white">
-              Uploading: {uploadProgress.fileName}
-            </span>
-            <span className="text-sm text-gray-300">
-              {Math.round(uploadProgress.progress)}%
-            </span>
-          </div>
+                      <option key={cat.bucketPath} value={cat.bucketPath}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
           
-          <div className="w-full bg-gray-600 rounded-full h-2.5 mb-2">
-            <div 
-              className="bg-blue-500 h-2.5 rounded-full transition-all duration-300"
-              style={{ width: `${uploadProgress.progress}%` }}
-            />
-          </div>
+              {/* TMDB Search Section */}
+              {selectedFiles.video && (
+                <div className="space-y-4 p-4 bg-gray-700/30 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium text-white">Movie Identification</h3>
+                    <button
+                      onClick={() => setManualSearch(!manualSearch)}
+                      className="text-blue-400 hover:text-blue-300 text-sm"
+                    >
+                      {manualSearch ? 'Hide Search' : 'Manual Search'}
+                    </button>
+                  </div>
           
-          <div className="flex justify-between text-xs text-gray-400">
-            <span>
-              {formatFileSize(uploadProgress.uploadedBytes)} / {formatFileSize(uploadProgress.totalBytes)}
-            </span>
-            <span>
-              {uploadProgress.speed > 0 ? (
-                <>
-                  {formatSpeed(uploadProgress.speed)} • 
-                  ETA: {formatTime(uploadProgress.estimatedTime)}
-                </>
-              ) : 'Calculating...'}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Action Buttons */}
-      <div className="flex gap-3">
-        <button
-          onClick={handleFileUpload}
-          disabled={uploading || !selectedFiles.video}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white py-3 rounded-lg transition-colors flex items-center justify-center"
-        >
-          {uploading ? (
-            <>
-              <span className="animate-spin mr-2">⏳</span>
-              Uploading...
-            </>
-          ) : (
-            'Start Upload'
-          )}
-        </button>
-        
-        {!uploading && (selectedFiles.video || selectedFiles.poster || selectedFiles.subtitles.length > 0) && (
-          <button
-            onClick={clearSelection}
-            className="px-4 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-lg transition-colors"
-          >
-            Clear All
-          </button>
-        )}
-      </div>
-
-      {/* Status Messages */}
-      {error && (
-        <div className="p-3 bg-red-500/20 text-red-300 rounded-lg">
-          <span className="font-medium">Error:</span> {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="p-3 bg-green-500/20 text-green-300 rounded-lg">
-          <span className="font-medium">Success:</span> {success}
-        </div>
-      )}
-
-      {/* File Summary */}
-      {(selectedFiles.video || selectedFiles.poster || selectedFiles.subtitles.length > 0) && !uploading && (
-        <div className="p-3 bg-gray-700/50 rounded-lg">
-          <h4 className="font-medium text-gray-300 mb-2">Selected Files:</h4>
-          <ul className="text-sm text-gray-400 space-y-1">
-            {selectedFiles.video && (
-              <li>🎥 Video: {selectedFiles.video.name} ({formatFileSize(selectedFiles.video.size)})</li>
-            )}
-            {selectedFiles.poster && (
-              <li>🖼️ Poster: {selectedFiles.poster.name} ({formatFileSize(selectedFiles.poster.size)})</li>
-            )}
-            {selectedFiles.subtitles.length > 0 && (
-              <li>📝 Subtitles: {selectedFiles.subtitles.length} file(s)</li>
-            )}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
+                  {manualSearch && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="text"
+                          value={movieTitle}
+                          onChange={(e) => setMovieTitle(e.target.value)}
+                          placeholder="Movie title"
+                          className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500"
+                        />
+                        <input
+                          type="text"
+                          value={year}
+                          onChange={(e) => setYear(e.target.value)}
+                          placeholder="Year (optional)"
+                          className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500"
+                        />
+                      </div>
+                      <button
+                        onClick={() => searchTMDB(movieTitle, year)}
+                        disabled={!movieTitle}
+                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-4 py-2 rounded text-sm"
+                      >
+                        Search TMDB
+                      </button>
+                    </div>
+                  )}
+          
+                  {/* Search Results */}
+                  {searchResults.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-300">Select the correct movie:</p>
+                      <div className="max-h-40 overflow-y-auto space-y-1">
+                        {searchResults.map((result) => (
+                          <div
+                            key={result.id}
+                            onClick={() => setSelectedMovie(result)}
+                            className={`p-2 rounded cursor-pointer text-sm ${
+                              selectedMovie?.id === result.id
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                            }`}
+                          >
+                            {result.title} ({new Date(result.release_date).getFullYear()})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+          
+                  {/* Selected Movie */}
+                  {selectedMovie && (
+                    <div className="p-3 bg-green-600/20 rounded border border-green-400/30">
+                      <p className="text-green-300 text-sm">
+                        ✓ Selected: {selectedMovie.title} ({new Date(selectedMovie.release_date).getFullYear()})
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+          
+              {/* File Inputs */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Video File (Required)
+                  </label>
+                  <div 
+                    onDragEnter={handleDrag}
+                    onDragOver={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDrop={(e) => handleDrop(e, 'video')}
+                  >
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => handleFileChange(e, 'video')}
+                      className="hidden"
+                      id="video-upload"
+                      disabled={uploading}
+                    />
+                    <label htmlFor="video-upload" className="cursor-pointer">
+                      {renderDragDropArea('video', 'a video file', 'MP4, MOV, AVI, MKV, WEBM')}
+                    </label>
+                  </div>
+                  {selectedFiles.video && (
+                    <div className="flex items-center justify-between mt-2 p-2 bg-green-500/10 rounded">
+                      <span className="text-sm text-green-400">
+                        ✓ {selectedFiles.video.name} ({formatFileSize(selectedFiles.video.size)})
+                      </span>
+                      <button
+                        onClick={() => {
+                          setSelectedFiles(prev => ({ ...prev, video: null }));
+                          setSearchResults([]);
+                          setSelectedMovie(null);
+                          setMovieTitle('');
+                          setYear('');
+                        }}
+                        className="text-red-400 hover:text-red-300 text-sm"
+                        disabled={uploading}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+          
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Poster Image (Optional)
+                  </label>
+                  <div 
+                    onDragEnter={handleDrag}
+                    onDragOver={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDrop={(e) => handleDrop(e, 'poster')}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, 'poster')}
+                      className="hidden"
+                      id="poster-upload"
+                      disabled={uploading}
+                    />
+                    <label htmlFor="poster-upload" className="cursor-pointer">
+                      {renderDragDropArea('poster', 'a poster image', 'JPG, PNG, GIF, WEBP')}
+                    </label>
+                  </div>
+                  {selectedFiles.poster && (
+                    <div className="flex items-center justify-between mt-2 p-2 bg-blue-500/10 rounded">
+                      <span className="text-sm text-blue-400">
+                        ✓ {selectedFiles.poster.name} ({formatFileSize(selectedFiles.poster.size)})
+                      </span>
+                      <button
+                        onClick={() => setSelectedFiles(prev => ({ ...prev, poster: null }))}
+                        className="text-red-400 hover:text-red-300 text-sm"
+                        disabled={uploading}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+          
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Subtitles (Optional)
+                  </label>
+                  <div 
+                    onDragEnter={handleDrag}
+                    onDragOver={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDrop={(e) => handleDrop(e, 'subtitles')}
+                  >
+                    <input
+                      type="file"
+                      accept=".srt,.vtt,.ass"
+                      multiple
+                      onChange={(e) => handleFileChange(e, 'subtitles')}
+                      className="hidden"
+                      id="subtitle-upload"
+                      disabled={uploading}
+                    />
+                    <label htmlFor="subtitle-upload" className="cursor-pointer">
+                      {renderDragDropArea('subtitles', 'subtitle files', 'SRT, VTT, ASS')}
+                    </label>
+                  </div>
+                  {selectedFiles.subtitles.length > 0 && (
+                    <div className="mt-2 p-2 bg-purple-500/10 rounded">
+                      <span className="text-sm text-purple-400">
+                        ✓ {selectedFiles.subtitles.length} subtitle file(s) selected
+                      </span>
+                      <button
+                        onClick={() => setSelectedFiles(prev => ({ ...prev, subtitles: [] }))}
+                        className="text-red-400 hover:text-red-300 text-sm ml-4"
+                        disabled={uploading}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+          
+              {/* Progress Bar */}
+              {uploadProgress && (
+                <div className="bg-gray-700 p-4 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-white">
+                      Uploading: {uploadProgress.fileName}
+                    </span>
+                    <span className="text-sm text-gray-300">
+                      {Math.round(uploadProgress.progress)}%
+                    </span>
+                  </div>
+                  
+                  <div className="w-full bg-gray-600 rounded-full h-2.5 mb-2">
+                    <div 
+                      className="bg-blue-500 h-2.5 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress.progress}%` }}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>
+                      {formatFileSize(uploadProgress.uploadedBytes)} / {formatFileSize(uploadProgress.totalBytes)}
+                    </span>
+                    <span>
+                      {uploadProgress.speed > 0 ? (
+                        <>
+                          {formatSpeed(uploadProgress.speed)} • 
+                          ETA: {formatTime(uploadProgress.estimatedTime)}
+                        </>
+                      ) : 'Calculating...'}
+                    </span>
+                  </div>
+                </div>
+              )}
+          
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleFileUpload}
+                  disabled={uploading || !selectedFiles.video}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white py-3 rounded-lg transition-colors flex items-center justify-center"
+                >
+                  {uploading ? (
+                    <>
+                      <span className="animate-spin mr-2">⏳</span>
+                      Uploading...
+                    </>
+                  ) : (
+                    'Start Upload'
+                  )}
+                </button>
+                
+                {!uploading && (selectedFiles.video || selectedFiles.poster || selectedFiles.subtitles.length > 0) && (
+                  <button
+                    onClick={clearSelection}
+                    className="px-4 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-lg transition-colors"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+          
+              {/* Status Messages */}
+              {error && (
+                <div className="p-3 bg-red-500/20 text-red-300 rounded-lg">
+                  <span className="font-medium">Error:</span> {error}
+                </div>
+              )}
+          
+              {success && (
+                <div className="p-3 bg-green-500/20 text-green-300 rounded-lg">
+                  <span className="font-medium">Success:</span> {success}
+                </div>
+              )}
+          
+              {/* File Summary */}
+              {(selectedFiles.video || selectedFiles.poster || selectedFiles.subtitles.length > 0) && !uploading && (
+                <div className="p-3 bg-gray-700/50 rounded-lg">
+                  <h4 className="font-medium text-gray-300 mb-2">Selected Files:</h4>
+                  <ul className="text-sm text-gray-400 space-y-1">
+                    {selectedFiles.video && (
+                      <li>🎥 Video: {selectedFiles.video.name} ({formatFileSize(selectedFiles.video.size)})</li>
+                    )}
+                    {selectedFiles.poster && (
+                      <li>🖼️ Poster: {selectedFiles.poster.name} ({formatFileSize(selectedFiles.poster.size)})</li>
+                    )}
+                    {selectedFiles.subtitles.length > 0 && (
+                      <li>📝 Subtitles: {selectedFiles.subtitles.length} file(s)</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+          );
+        }

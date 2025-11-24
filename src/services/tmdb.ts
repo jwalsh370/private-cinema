@@ -14,24 +14,80 @@ export interface MovieMetadata {
   poster_path: string;
   backdrop_path: string;
   imdb_id?: string;
+  budget?: number;
+  revenue?: number;
+  production_companies?: Array<{
+    id: number;
+    name: string;
+    logo_path?: string;
+    origin_country: string;
+  }>;
+  production_countries?: Array<{
+    iso_3166_1: string;
+    name: string;
+  }>;
+  spoken_languages?: Array<{
+    english_name: string;
+    iso_639_1: string;
+    name: string;
+  }>;
+  status: string;
+  tagline?: string;
+  credits?: {
+    cast: Array<{
+      id: number;
+      name: string;
+      character: string;
+      profile_path?: string;
+      order: number;
+    }>;
+    crew: Array<{
+      id: number;
+      name: string;
+      job: string;
+      department: string;
+      profile_path?: string;
+    }>;
+  };
+  videos?: {
+    results: Array<{
+      id: string;
+      key: string;
+      name: string;
+      site: string;
+      type: string;
+      official: boolean;
+    }>;
+  };
 }
 
-export async function getMovieMetadata(title: string): Promise<MovieMetadata | null> {
+export async function getEnhancedMovieMetadata(title: string): Promise<MovieMetadata | null> {
   try {
-    const response = await fetch(
+    // First search for the movie
+    const searchResponse = await fetch(
       `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&language=en-US`
     );
 
-    if (!response.ok) throw new Error('TMDB API error');
+    if (!searchResponse.ok) throw new Error('TMDB API error');
 
-    const data = await response.json();
-    if (data.results && data.results.length > 0) {
-      return data.results[0];
+    const searchData = await searchResponse.json();
+    
+    if (searchData.results && searchData.results.length > 0) {
+      const movieId = searchData.results[0].id;
+      
+      // Get detailed information including credits and videos
+      const detailedResponse = await fetch(
+        `${TMDB_BASE_URL}/movie/${movieId}?api_key=${TMDB_API_KEY}&language=en-US&append_to_response=credits,videos`
+      );
+
+      if (!detailedResponse.ok) throw new Error('TMDB API error');
+
+      return await detailedResponse.json();
     }
 
     return null;
   } catch (error) {
-    console.error('Error fetching movie metadata:', error);
+    console.error('Error fetching enhanced movie metadata:', error);
     return null;
   }
 }
@@ -39,7 +95,7 @@ export async function getMovieMetadata(title: string): Promise<MovieMetadata | n
 export async function getMovieDetails(movieId: number): Promise<MovieMetadata | null> {
   try {
     const response = await fetch(
-      `${TMDB_BASE_URL}/movie/${movieId}?api_key=${TMDB_API_KEY}&language=en-US`
+      `${TMDB_BASE_URL}/movie/${movieId}?api_key=${TMDB_API_KEY}&language=en-US&append_to_response=credits,videos`
     );
 
     if (!response.ok) throw new Error('TMDB API error');
@@ -53,10 +109,10 @@ export async function getMovieDetails(movieId: number): Promise<MovieMetadata | 
 
 // Helper to extract movie title from filename
 export function extractMovieTitle(filename: string): string {
-  // Remove extensions and special characters
   return filename
-    .replace(/\.[^/.]+$/, '') // Remove extension
-    .replace(/[_-]/g, ' ') // Replace underscores and dashes with spaces
-    .replace(/\d{4}/, '') // Remove years
+    .replace(/\.[^/.]+$/, '')
+    .replace(/[._-]/g, ' ')
+    .replace(/(\d{4})/, ' $1 ')
+    .replace(/\s+/g, ' ')
     .trim();
 }

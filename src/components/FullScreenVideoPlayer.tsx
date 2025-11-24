@@ -115,7 +115,7 @@ export function FullScreenVideoPlayer({
           {/* Control Buttons */}
           <div className="flex items-center justify-between mt-3">
             <div className="flex items-center space-x-4">
-              <button onClick={togglePlay} className="text-white text-2xl">
+              <button onClick={togglePlay} className="text-white text-2xl btn">
                 {isPlaying ? '⏸️' : '▶️'}
               </button>
               
