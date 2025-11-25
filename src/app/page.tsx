@@ -1,12 +1,25 @@
-// app/page.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVideoPlayer } from '@/hooks/useVideoPlayer';
-
+import MovieMetadataModal from '@/components/MovieMetadataModal';
 import { HeroSection, ContentRows, MediaGallery, LuxuryNavbar, FullScreenVideoPlayer, ProtectedRoute } from '@/components';
 import { getVideosWithPendingMetadata } from '@/lib/videoStorage';
 
+interface Movie {
+  id: string;
+  title: string;
+  s3Key: string;
+  videoUrl: string;
+  posterPath: string;
+  progress: number;
+  duration: number;
+  metadataStatus: string;
+  rating?: number;
+  year?: number;
+  genres?: Array<{ name: string }>;
+  metadata?: any;
+}
 
 export default function CinemaDashboard() {
   const { user } = useAuth();
@@ -15,6 +28,8 @@ export default function CinemaDashboard() {
   const [recentUploads, setRecentUploads] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [metadataModalOpen, setMetadataModalOpen] = useState(false);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
   useEffect(() => {
     const loadMedia = async () => {
@@ -24,7 +39,6 @@ export default function CinemaDashboard() {
           fetch('/api/videos')
         ]);
     
-        // Add detailed error logging
         if (!pendingResponse.ok) {
           console.error('Pending videos API error:', pendingResponse.status, pendingResponse.statusText);
           throw new Error(`Pending videos API error: ${pendingResponse.status}`);
@@ -63,14 +77,40 @@ export default function CinemaDashboard() {
       }
     };
     
-
     loadMedia();
   }, []);
 
+  const handleEditMetadata = (movie: Movie) => {
+    setSelectedMovie(movie);
+    setMetadataModalOpen(true);
+  };
+
+  const handleAssignMetadata = async (movieId: string, metadata: any) => {
+    try {
+      const response = await fetch(`/api/videos/${movieId}/metadata`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ metadata }),
+      });
+
+      if (response.ok) {
+        // Refresh the page or update local state
+        window.location.reload();
+      } else {
+        console.error('Failed to assign metadata:', response.status);
+      }
+    } catch (error) {
+      console.error('Error assigning metadata:', error);
+    }
+  };
+
   const enrichMovieData = (movie: any): Movie => ({
     ...movie,
+    id: movie.id || Math.random().toString(),
     s3Key: movie.Key || movie.s3Key,
-    videoUrl: movie.Url || movie.videoUrl, // Make sure this exists for video playback
+    videoUrl: movie.Url || movie.videoUrl || '',
     posterPath: movie.metadata?.poster_path || movie.posterPath || '',
     progress: movie.progress || 0,
     duration: movie.metadata?.runtime || movie.duration || 0,
@@ -108,6 +148,7 @@ export default function CinemaDashboard() {
                   title="Continue Watching"
                   movies={recentUploads.filter(m => m.progress > 0)}
                   onSelect={playVideo}
+                  onEditMetadata={handleEditMetadata}
                   variant="slider"
                 />
 
@@ -115,6 +156,7 @@ export default function CinemaDashboard() {
                   title="Recently Added"
                   movies={recentUploads}
                   onSelect={playVideo}
+                  onEditMetadata={handleEditMetadata}
                   variant="slider"
                 />
 
@@ -145,6 +187,13 @@ export default function CinemaDashboard() {
               className="salmon-glow"
             />
           )}
+
+          <MovieMetadataModal
+            movie={selectedMovie}
+            isOpen={metadataModalOpen}
+            onClose={() => setMetadataModalOpen(false)}
+            onMetadataAssign={handleAssignMetadata}
+          />
         </main>
       </div>
     </ProtectedRoute>

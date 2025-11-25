@@ -1,4 +1,4 @@
-// src/app/api/videos/[key]/route.ts
+// src/app/api/videos/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 

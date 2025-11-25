@@ -1,0 +1,167 @@
+/**
+ * Extracts clean movie title from various filename patterns
+ * Handles common naming conventions used in movie files
+ */
+
+export interface ParsedFilename {
+  title: string;
+  year?: number;
+  quality?: string;
+  source?: string;
+  codec?: string;
+  extension: string;
+}
+
+/**
+ * Main function to extract movie title from filename
+ * Removes common patterns, years, quality indicators, etc.
+ */
+export function extractMovieTitle(filename: string): string {
+  if (!filename) return 'Unknown Title';
+  
+  // Remove file extension
+  let cleanName = filename.replace(/\.[^/.]+$/, '');
+  
+  // Remove common patterns in order of specificity
+  const patternsToRemove = [
+    // Quality patterns (4K, 1080p, 720p, etc.)
+    /\b(4K|2160p|1080p|720p|480p|360p|HD|FHD|UHD|BluRay|Blu-ray|DVD|WEB-DL|WEBRip|HDRip|BRRip|BDRip|Remux)\b/gi,
+    
+    // Codec patterns
+    /\b(x264|x265|h264|h265|HEVC|AVC|VC-1|DivX|XviD)\b/gi,
+    
+    // Source patterns
+    /\b(BluRay|WEB-DL|DVDrip|TVRip|HDTV|PDTV|DSR|VHSRip)\b/gi,
+    
+    // Audio patterns
+    /\b(AC3|DTS|AAC|MP3|FLAC|DTS-HD|DTS-MA|TrueHD|Atmos)\b/gi,
+    
+    // Release group patterns
+    /\b(-\\w+|\\[\\w+\\]|\\(\\w+\\)|\\{\\w+\\})\b/g,
+    
+    // Special edition patterns
+    /\b(Extended|Director's Cut|Unrated|Theatrical|Special Edition|Final Cut|Collector's Edition)\b/gi,
+    
+    // Random numbers and codes (but preserve years)
+    /\b(\\d{3,}mb|\\d+mb|\\d+\\w+b|\\d+\\w+\\d+)\\b/gi,
+  ];
+
+  patternsToRemove.forEach(pattern => {
+    cleanName = cleanName.replace(pattern, '');
+  });
+
+  // Extract year (4-digit numbers between 1900-2100)
+  const yearMatch = cleanName.match(/\b(19|20)\d{2}\b/);
+  if (yearMatch) {
+    cleanName = cleanName.replace(yearMatch[0], '');
+  }
+
+  // Remove special characters and multiple spaces
+  cleanName = cleanName
+    .replace(/[._-]/g, ' ')          // Replace dots, underscores, dashes with spaces
+    .replace(/[\\[\\](){}]/g, '')    // Remove brackets and parentheses
+    .replace(/\s+/g, ' ')            // Collapse multiple spaces
+    .trim();
+
+  // Capitalize first letter of each word for better presentation
+  cleanName = cleanName.replace(/\b\w/g, char => char.toUpperCase());
+
+  return cleanName || 'Unknown Title';
+}
+
+/**
+ * Advanced parser that extracts multiple components from filename
+ */
+export function parseFilename(filename: string): ParsedFilename {
+  const extension = filename.split('.').pop() || '';
+  const baseName = filename.replace(/\.[^/.]+$/, '');
+  
+  let title = extractMovieTitle(filename);
+  
+  // Extract year
+  const yearMatch = baseName.match(/\b(19|20)\d{2}\b/);
+  const year = yearMatch ? parseInt(yearMatch[0]) : undefined;
+  
+  // Extract quality
+  const qualityMatch = baseName.match(/\b(4K|2160p|1080p|720p|480p|HD|FHD|UHD)\b/i);
+  const quality = qualityMatch ? qualityMatch[0] : undefined;
+  
+  // Extract source
+  const sourceMatch = baseName.match(/\b(BluRay|Blu-ray|DVD|WEB-DL|WEBRip|HDTV)\b/i);
+  const source = sourceMatch ? sourceMatch[0] : undefined;
+  
+  // Extract codec
+  const codecMatch = baseName.match(/\b(x264|x265|h264|h265|HEVC)\b/i);
+  const codec = codecMatch ? codecMatch[0] : undefined;
+
+  return {
+    title,
+    year,
+    quality,
+    source,
+    codec,
+    extension
+  };
+}
+
+/**
+ * Helper to generate display title from parsed data
+ */
+export function generateDisplayTitle(parsed: ParsedFilename): string {
+  let display = parsed.title;
+  
+  if (parsed.year) {
+    display += ` (${parsed.year})`;
+  }
+  
+  if (parsed.quality) {
+    display += ` [${parsed.quality}]`;
+  }
+  
+  return display;
+}
+
+/**
+ * Test function to see what the parser extracts
+ * Useful for debugging filename patterns
+ */
+export function debugFilenameParsing(filename: string): void {
+  console.log('Original filename:', filename);
+  console.log('Extracted title:', extractMovieTitle(filename));
+  console.log('Full parse:', parseFilename(filename));
+  console.log('---');
+}
+
+// Common patterns for validation
+export const COMMON_PATTERNS = {
+  QUALITY: /(4K|2160p|1080p|720p|480p|HD|FHD|UHD)/i,
+  SOURCE: /(BluRay|DVD|WEB-DL|WEBRip|HDTV)/i,
+  CODEC: /(x264|x265|h264|h265|HEVC)/i,
+  YEAR: /(19|20)\d{2}/,
+  EXTENSION: /\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i
+};
+
+/**
+ * Validates if filename follows common movie naming conventions
+ */
+export function isValidMovieFilename(filename: string): boolean {
+  return COMMON_PATTERNS.EXTENSION.test(filename) && 
+         extractMovieTitle(filename) !== 'Unknown Title';
+}
+
+/**
+ * Extracts just the year from filename
+ */
+export function extractYear(filename: string): number | undefined {
+  const match = filename.match(/\b(19|20)\d{2}\b/);
+  return match ? parseInt(match[0]) : undefined;
+}
+
+export default {
+  extractMovieTitle,
+  parseFilename,
+  generateDisplayTitle,
+  debugFilenameParsing,
+  isValidMovieFilename,
+  extractYear
+};

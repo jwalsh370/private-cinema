@@ -9,9 +9,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:verbose": "jest --verbose",
+    "test:metadata": "jest src/lib/metadata/__tests__/",
+    "test:components": "jest src/components/__tests__/",
+    "test:ui": "jest --testPathPattern=\"src/components/__tests__|src/lib/__tests__\"",
+    "test:ci": "jest --ci --coverage --maxWorkers=2"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.937.0",
@@ -19,6 +24,8 @@
     "@ffmpeg/core": "^0.12.10",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@prisma/extension-accelerate": "^3.0.0",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/forms": "^0.5.10",
@@ -28,6 +35,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "critters": "^0.0.23",
+    "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.23.24",
     "hls.js": "^1.6.15",
     "jose": "^6.1.2",
@@ -43,21 +51,27 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
     "@prisma/client": "^6.19.0",
     "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^14.2.1",
+    "@testing-library/react": "^14.3.1",
     "@testing-library/user-event": "^14.6.1",
     "@types/aws-sdk": "^0.0.42",
     "@types/hls.js": "^0.13.3",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.4.1",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "autoprefixer": "^10.4.22",
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
     "jsdom": "^27.2.0",
     "postcss": "^8.5.6",
     "prisma": "^6.19.0",
-    "tailwindcss": "^3.4.18"
+    "tailwindcss": "^3.4.18",
+    "ts-jest": "^29.4.5"
   }
 }

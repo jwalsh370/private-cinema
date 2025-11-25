@@ -1,97 +1,222 @@
-/* src/app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
-:root {
-  --midnight-blue: #0a1128;
-  --deep-navy: #1c2541;
-  --gold-accent: #c89b3c;
-  --salmon-pink: #ff6b6b;
-  --soft-white: #f8f9fa;
-  --charcoal: #2b2d42;
-  --silver: #e0e1dd;
-}
+@layer base {
+  :root {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 15%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217 32% 20%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 32% 20%;
+    --muted-foreground: 215 25% 75%;
+    --accent: 217 32% 20%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 224 76% 48%;
+    --radius: 0.75rem;
+  }
 
-body {
-  font-family: 'Inter', sans-serif;
-  background: linear-gradient(135deg, var(--midnight-blue) 0%, var(--deep-navy) 50%, var(--charcoal) 100%);
-  color: var(--soft-white);
-  overflow-x: hidden;
-}
-
-/* Luxury components */
-@layer components {
-  .luxury-gradient {
-    background: linear-gradient(
-      135deg,
-      rgba(10, 17, 40, 0.95) 0%,
-      rgba(28, 37, 65, 0.9) 50%,
-      rgba(43, 45, 66, 0.85) 100%
-    );
-  }
-  
-  .gold-border {
-    border: 1px solid var(--gold-accent);
-  }
-  
-  .salmon-glow {
-    box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
-  }
-  
-  .card-hover {
-    @apply transform transition-all duration-500 hover:scale-105 hover:shadow-2xl;
-  }
-  
-  .luxury-button {
-    @apply bg-gradient-to-r from-gray-800 to-charcoal border border-gold-accent text-soft-white font-light py-3 px-8 rounded-lg transition-all duration-300 hover:from-charcoal hover:to-gray-800 hover:border-salmon-pink hover:text-salmon-pink hover:salmon-glow;
-  }
-  
-  .secondary-button {
-    @apply bg-transparent border border-silver text-silver font-light py-2 px-6 rounded transition-all duration-300 hover:border-salmon-pink hover:text-salmon-pink hover:salmon-glow;
-  }
-  
-  .glass-effect {
-    background: rgba(28, 37, 65, 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(200, 155, 60, 0.2);
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 15%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217 32% 20%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 32% 20%;
+    --muted-foreground: 215 25% 75%;
+    --accent: 217 32% 20%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 224 76% 48%;
   }
 }
 
-/* Typography */
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Playfair Display', serif;
-  font-weight: 600;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }
 
-/* Custom scrollbar */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.5s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.4s ease-out;
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Luxury gradient background */
+.luxury-gradient {
+  background: linear-gradient(135deg, 
+    hsl(222, 47%, 11%) 0%,
+    hsl(222, 47%, 13%) 25%,
+    hsl(222, 47%, 15%) 50%,
+    hsl(222, 47%, 13%) 75%,
+    hsl(222, 47%, 11%) 100%
+  );
+}
+
+/* Custom scrollbar for webkit */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--deep-navy);
+  background: hsl(217, 32%, 10%);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--gold-accent);
+  background: hsl(217, 32%, 25%);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--salmon-pink);
+  background: hsl(217, 32%, 35%);
 }
 
-/* Add to your existing CSS */
-.shadow-cinematic {
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 
-              0 0 15px rgba(200, 155, 60, 0.15);
+/* Selection color */
+::selection {
+  background: hsl(217, 91%, 60%);
+  color: hsl(210, 40%, 98%);
 }
 
-.glass-effect {
-  background: rgba(28, 37, 65, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(200, 155, 60, 0.2);
+/* Focus styles */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
 }
 
+/* Loading animation */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+/* Text shadow for better readability */
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.text-shadow-sm {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Backdrop blur utilities */
+.backdrop-blur-xs {
+  backdrop-filter: blur(2px);
+}
+
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+}
+
+.backdrop-blur-md {
+  backdrop-filter: blur(8px);
+}
+
+.backdrop-blur-lg {
+  backdrop-filter: blur(16px);
+}

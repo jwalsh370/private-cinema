@@ -1,30 +1,24 @@
 // src/types/index.ts
 export interface Movie {
   id: string;
+  title: string;
   s3Key: string;
-  originalName: string;
-  posterPath?: string;
-  progress?: number;
-  duration?: number;
-  category: string;
-  metadataStatus: 'PENDING' | 'MATCHED' | 'ERROR';
-  parsedMetadata?: {
-    cleanTitle: string;
-    year?: number;
-    quality?: string;
-    source?: string;
-  };
-  tmdbMetadata?: {
-    id?: number;
-    title?: string;
-    overview?: string;
-    release_date?: string;
-    vote_average?: number;
-    runtime?: number;
-    genres?: Array<{ id: number; name: string }>;
-    poster_path?: string;
-  };
+  videoUrl: string;
+  posterPath: string;
+  progress: number;
+  duration: number;
+  metadataStatus: string;
+  rating?: number;
+  year?: number;
+  genres?: Array<{ name: string }>;
+  metadata?: any;
+  // Add these if they exist in your data
+  category?: string;
+  Key?: string;
+  Url?: string;
+  tmdbMetadata?: any;
 }
+
 
 // Add other shared types used in your project
 export type View = 'upload' | 'manage' | 'settings';
