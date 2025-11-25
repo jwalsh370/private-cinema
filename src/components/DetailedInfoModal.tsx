@@ -13,7 +13,7 @@ interface DetailedInfoModalProps {
   onAddToCollection: () => void;
 }
 
-export function DetailedInfoModal({ isOpen, onClose, metadata, onPlay, onAddToCollection }: DetailedInfoModalProps) {
+export default function DetailedInfoModal({ isOpen, onClose, metadata, onPlay, onAddToCollection }: DetailedInfoModalProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

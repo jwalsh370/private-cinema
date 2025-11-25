@@ -2,9 +2,9 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { LoginForm } from './LoginForm';
+import  LoginForm  from './LoginForm';
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
   if (loading) {

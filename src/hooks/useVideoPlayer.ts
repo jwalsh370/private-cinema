@@ -1,6 +1,15 @@
-// Create a hooks/useVideoPlayer.ts
-export const useVideoPlayer = () => {
-  const [currentVideo, setCurrentVideo] = useState(null);
+// src/hooks/useVideoPlayer.ts
+import { useState } from 'react';
+
+interface VideoPlayerState {
+  currentVideo: any | null;
+  isPlaying: boolean;
+  playVideo: (video: any) => void;
+  pauseVideo: () => void;
+}
+
+export const useVideoPlayer = (): VideoPlayerState => {
+  const [currentVideo, setCurrentVideo] = useState<any | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const playVideo = (video: any) => {
@@ -10,6 +19,7 @@ export const useVideoPlayer = () => {
 
   const pauseVideo = () => {
     setIsPlaying(false);
+    setCurrentVideo(null);
   };
 
   return {
@@ -19,11 +29,3 @@ export const useVideoPlayer = () => {
     pauseVideo
   };
 };
-
-// Usage in components
-const { playVideo, pauseVideo } = useVideoPlayer();
-
-// In MovieCard:
-<button onClick={() => playVideo(movie)}>
-  <PlayIcon />
-</button>

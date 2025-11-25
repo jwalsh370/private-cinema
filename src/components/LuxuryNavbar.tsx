@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, User, Settings, Home, Film, Heart, Clock } from 'lucide-react';
 
-export function LuxuryNavbar() {
+export default function LuxuryNavbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 

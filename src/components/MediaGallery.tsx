@@ -2,8 +2,8 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ModernVideoPlayer } from './ModernVideoPlayer';
-import { MovieCard } from './MovieCard';
+import  ModernVideoPlayer  from './ModernVideoPlayer';
+import  MovieCard  from './MovieCard';
 import { Search, Filter, Grid, List } from 'lucide-react';
 
 interface VideoItem {
@@ -17,7 +17,7 @@ interface VideoItem {
   userId?: string;
 }
 
-export function MediaGallery() {
+export default function MediaGallery() {
   const [videosByCategory, setVideosByCategory] = useState<Record<string, VideoItem[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');

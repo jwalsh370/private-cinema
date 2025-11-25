@@ -4,18 +4,31 @@
 import { useState, useRef, useEffect } from 'react';
 
 interface FullScreenVideoPlayerProps {
-  videoUrl: string;
+  id: string;
+  title: string;
+  s3Key: string;
+  videoUrl: string; // This is crucial for the video player
+  progress: number;
+  duration: number;
+  metadataStatus: string;
+  rating?: number;
+  year?: number;
+  genres?: Array<{ name: string }>;
   posterUrl?: string;
   subtitles?: Array<{ lang: string; url: string }>;
   onClose: () => void;
 }
-
-export function FullScreenVideoPlayer({ 
-  videoUrl, 
-  posterUrl, 
-  subtitles, 
+interface FullScreenVideoPlayerProps {
+  video: Video; // Accept full movie object
+  onClose: () => void;
+}
+export default function FullScreenVideoPlayer({ 
+  subtitles,
+  video,
   onClose 
 }: FullScreenVideoPlayerProps) {
+  const videoUrl = video.videoRef;
+  const posterUrl = video.posterPath;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);

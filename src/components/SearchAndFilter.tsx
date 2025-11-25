@@ -1,3 +1,4 @@
+// components/SearchAndFilter.tsx
 'use client';
 import { useState } from 'react';
 import { Search, Filter, X, SlidersHorizontal } from 'lucide-react';
@@ -9,7 +10,7 @@ interface SearchAndFilterProps {
   categories: string[];
 }
 
-export function SearchAndFilter({ onSearch, onFilter, categories }: SearchAndFilterProps) {
+export default function SearchAndFilter({ onSearch, onFilter, categories }: SearchAndFilterProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filters, setFilters] = useState({
@@ -69,7 +70,7 @@ export function SearchAndFilter({ onSearch, onFilter, categories }: SearchAndFil
           onClick={() => setIsFilterOpen(!isFilterOpen)}
           className="flex items-center space-x-2 bg-gray-800/50 border border-gray-600/30 text-white px-4 py-3 rounded-xl hover:bg-gray-700/50 transition-all"
         >
-          <SlidersHorizontal size={20} />
+          <Filter size={20} />
           <span>Filters</span>
         </button>
       </div>

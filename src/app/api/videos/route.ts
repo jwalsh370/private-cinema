@@ -1,7 +1,7 @@
 // src/app/api/videos/route.ts (enhanced)
 import { NextResponse } from 'next/server';
 import { listMediaObjects, getPresignedUrl } from '@/lib/s3-helpers';
-import { getMovieMetadata } from '@/services/tmdb';
+import { getEnhancedMovieMetadata, extractMovieTitle } from '@/services/tmdb';
 
 export async function GET() {
   try {
@@ -43,7 +43,7 @@ export async function GET() {
         // Get enhanced metadata from TMDB
         let enhancedMetadata = null;
         try {
-          enhancedMetadata = await getMovieMetadata(movieTitle);
+          enhancedMetadata = await getEnhancedMovieMetadata(movieTitle);
         } catch (error) {
           console.warn('TMDB metadata fetch failed:', error);
         }

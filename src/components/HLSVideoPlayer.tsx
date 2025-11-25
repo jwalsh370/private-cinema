@@ -8,7 +8,7 @@ interface HLSVideoPlayerProps {
   videoUrl: string; // This now comes from the API (pre-signed URL)
 }
 
-export function HLSVideoPlayer({ fileKey, videoUrl }: HLSVideoPlayerProps) {
+export default function HLSVideoPlayer({ fileKey, videoUrl }: HLSVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);

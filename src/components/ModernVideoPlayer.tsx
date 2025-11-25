@@ -11,7 +11,7 @@ interface EnhancedModernVideoPlayerProps {
   onClose: () => void;
 }
 
-export function EnhancedModernVideoPlayer({ videoUrl, posterUrl, title, metadata, onClose }: EnhancedModernVideoPlayerProps) {
+export default function EnhancedModernVideoPlayer({ videoUrl, posterUrl, title, metadata, onClose }: EnhancedModernVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);

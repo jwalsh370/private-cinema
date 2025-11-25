@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { MovieCard } from './MovieCard';
+import  MovieCard  from './MovieCard';
 
 interface ContentRowsProps {
   title: string;
@@ -13,11 +13,18 @@ interface ContentRowsProps {
   onInfoClick?: (item: any) => void;
 }
 
-export function ContentRows({ title, items, type = 'movie', onItemClick, onInfoClick }: ContentRowsProps) {
+export default function ContentRows({ title, items, type = 'movie', onItemClick, onInfoClick }: ContentRowsProps) {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
 
+  // Add safety check for undefined movies array
+  const safeMovies = items || [];
+  const hasMovies = safeMovies.length > 0;
+
+  if (!hasMovies) {
+    return null; // Or return a placeholder if you prefer
+  }
   const scroll = (direction: 'left' | 'right') => {
     if (!rowRef.current) return;
 

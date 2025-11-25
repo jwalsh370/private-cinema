@@ -1,8 +1,7 @@
 // src/components/MetadataManager.tsx
 'use client';
 import { useState, useEffect } from 'react';
-import { Search, RefreshCw, CheckCircle, XCircle, Edit3 } from 'lucide-react';
-import { parseFilename } from '@/utils/filenameParser';
+import { Search, RefreshCw } from 'lucide-react';
 
 interface VideoWithMetadata {
   id: string;
@@ -15,11 +14,11 @@ interface VideoWithMetadata {
   uploadDate: string;
 }
 
-export function MetadataManager() {
+export default function MetadataManager() {
   const [videos, setVideos] = useState<VideoWithMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingVideo, setEditingVideo] = useState<VideoWithMetadata | null>(null);
+  const [editingVideo] = useState<VideoWithMetadata | null>(null);
   const [manualSearch, setManualSearch] = useState('');
 
   useEffect(() => {

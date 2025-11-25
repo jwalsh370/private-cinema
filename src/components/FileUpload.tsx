@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { Upload, X, CheckCircle } from 'lucide-react';
 
-export function FileUpload() {
+export default function FileUpload() {
   const [uploading, setUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);

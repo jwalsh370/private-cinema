@@ -1,3 +1,4 @@
+// components/RatingSystem.tsx
 'use client';
 import { useState } from 'react';
 import { Star, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react';
@@ -14,7 +15,7 @@ interface RatingSystemProps {
   onReview: (review: string) => void;
 }
 
-export function RatingSystem({ 
+export default function RatingSystem({ 
   videoKey, 
   initialRating = 0, 
   initialLikes = 0, 

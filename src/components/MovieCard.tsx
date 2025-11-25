@@ -1,8 +1,10 @@
+// components/MovieCard.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Play, Plus, Info, Star, Clock, Calendar, Eye } from 'lucide-react';
 import { getEnhancedMovieMetadata } from '@/services/tmdb';
+import { useVideoPlayer } from '@/hooks/useVideoPlayer';
 
 interface MovieCardProps {
   video: any;
@@ -11,10 +13,11 @@ interface MovieCardProps {
   showDetails?: boolean;
 }
 
-export function MovieCard({ video, onClick, onInfoClick, showDetails = true }: MovieCardProps) {
+export default function MovieCard({ video, onClick, onInfoClick, showDetails = true }: MovieCardProps) {
   const [metadata, setMetadata] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
+  const { playVideo } = useVideoPlayer();
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -89,8 +92,12 @@ export function MovieCard({ video, onClick, onInfoClick, showDetails = true }: M
             className="absolute inset-0 bg-black/80 flex items-center justify-center space-x-3 p-4"
           >
             <button
-              onClick={onClick}
-              className="bg-salmon-pink text-white rounded-full p-3 hover:bg-salmon-pink/90 transition-colors transform hover:scale-110"
+             onClick={(e) => {
+              e.stopPropagation();
+              playVideo(video);  // Hook integration
+              onClick();         // Existing prop
+            }}
+            className="bg-salmon-pink text-white rounded-full p-3 hover:bg-salmon-pink/90 transition-colors transform hover:scale-110"
             >
               <Play size={20} fill="currentColor" />
             </button>

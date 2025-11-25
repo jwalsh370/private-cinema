@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
-export function LoginForm() {
+export default function LoginForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
